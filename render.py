@@ -87,8 +87,6 @@ class Cubie:
         ])
 
         # Scale the cubie down and then shift it to it's respective grid position.
-        # Numpy treats cube_scale as a scalar value and applies it individually to every number in the matrix.
-        # Numpy also does the addition by adding the tuple grid position, to each row in the matrix. 
         self.vertices = (self.vertices * cube_scale) + grid_position
 
         # This decides which colour each face gets depending on the cubie's grid position.
@@ -166,7 +164,16 @@ class Renderer:
         self.cubies = []
         for position in cubie_positions:
             self.cubies.append(Cubie(position))
-        
+
+        self.facelets = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            2, 2, 2, 2, 2, 2, 2, 2, 2,
+            3, 3, 3, 3, 3, 3, 3, 3, 3,
+            4, 4, 4, 4, 4, 4, 4, 4, 4,
+            5, 5, 5, 5, 5, 5, 5, 5, 5
+        ]
+
         # self.animating is true while a face turn is in progress, and false while it isn't.
         # It is used to block multiple turns trying to animate at the same time in main.py and is also checked in draw_cube() to start the next scrambled face.
         self.animating = False
@@ -320,7 +327,7 @@ class Renderer:
             
             # Make a 90 degree rotation matrix for this face.
             # This is applied once so that the cubie's grid position is updated to it's new location
-            # Since pi is a transcendental number, the numbers past the decimal point go on forever.
+            # Since sin and cos are approximations at these angles, the math library eventually cuts the end of it off.
             # This means when using the rotation matrices the values are only an estimate and are eventually rounded.
             # This causes an issue called floating point error and is not really noticed when using the rotation matrix once.
             # But if we were to do 30 3 degree turns the ever so slight floating point error would accumulate and break the cube.
@@ -347,6 +354,8 @@ class Renderer:
                 cubie.x = int(round(new_position[0]))
                 cubie.y = int(round(new_position[1]))
                 cubie.z = int(round(new_position[2]))
+
+            self.rotate_facelets(self.face)
 
             return
         
@@ -384,3 +393,83 @@ class Renderer:
         for i in range(10):
             choice = random.choice(faces)
             self.choices.append(choice)
+
+    def rotate_facelets(self, face):
+        old_facelets = self.facelets.copy()
+
+        if face == "right":
+            start = 0
+            surrounding_facelets = [
+                [26, 23, 20],
+                [45, 48, 51],
+                [35, 32, 29],
+                [44, 41, 38]
+            ]
+        elif face == "left":
+            start = 9
+            surrounding_facelets = [
+                [18, 21, 24],
+                [36, 39, 42],
+                [27, 30, 33],
+                [53, 50, 47]
+            ]
+        elif face == "up":
+            start = 18
+            surrounding_facelets = [
+                [47, 46, 45],
+                [2, 1, 0],
+                [38, 37, 36],
+                [11, 10, 9]
+            ]
+        elif face == "down":
+            start = 27
+            surrounding_facelets = [
+                [42, 43, 44],
+                [6, 7, 8],
+                [51, 52, 53],
+                [15, 16, 17]
+            ]
+        elif face == "front":
+            start = 36
+            surrounding_facelets = [
+                [24, 25, 26],
+                [0, 3, 6],
+                [29, 28, 27],
+                [17, 14, 11]
+            ]
+        elif face == "back":
+            start = 45
+            surrounding_facelets = [
+                [20, 19, 18],
+                [9, 12, 15],
+                [33, 34, 35],
+                [8, 5, 2]
+            ]
+
+        self.facelets[start] = old_facelets[start+6]
+        self.facelets[start+1] = old_facelets[start+3]
+        self.facelets[start+2] = old_facelets[start]
+
+        self.facelets[start+3] = old_facelets[start+7]
+        self.facelets[start+4] = old_facelets[start+4]
+        self.facelets[start+5] = old_facelets[start+1]
+
+        self.facelets[start+6] = old_facelets[start+8]
+        self.facelets[start+7] = old_facelets[start+5]
+        self.facelets[start+8] = old_facelets[start+2]
+
+        self.facelets[surrounding_facelets[0][0]] = old_facelets[surrounding_facelets[3][0]]
+        self.facelets[surrounding_facelets[0][1]] = old_facelets[surrounding_facelets[3][1]]
+        self.facelets[surrounding_facelets[0][2]] = old_facelets[surrounding_facelets[3][2]]
+
+        self.facelets[surrounding_facelets[1][0]] = old_facelets[surrounding_facelets[0][0]]
+        self.facelets[surrounding_facelets[1][1]] = old_facelets[surrounding_facelets[0][1]]
+        self.facelets[surrounding_facelets[1][2]] = old_facelets[surrounding_facelets[0][2]]
+
+        self.facelets[surrounding_facelets[2][0]] = old_facelets[surrounding_facelets[1][0]]
+        self.facelets[surrounding_facelets[2][1]] = old_facelets[surrounding_facelets[1][1]]
+        self.facelets[surrounding_facelets[2][2]] = old_facelets[surrounding_facelets[1][2]]
+
+        self.facelets[surrounding_facelets[3][0]] = old_facelets[surrounding_facelets[2][0]]
+        self.facelets[surrounding_facelets[3][1]] = old_facelets[surrounding_facelets[2][1]]
+        self.facelets[surrounding_facelets[3][2]] = old_facelets[surrounding_facelets[2][2]]

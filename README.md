@@ -89,3 +89,23 @@ Steps to Implement<br>
 1. Map all the keys to their respective faces like U for up and so on.
 2. Find the 9 cubies that are on that face so for up, it would be where grid_position[1] == 1.
 3. For every frame, apply a small rotation matrix, maybe like 2 or 3 degrees, to the cubies vertices, and then keep accumalating this rotation until 90 degrees is reached
+
+**How to implement MCTS**<br>
+
+**First I need to figure out how to pass the cube to the algorithm as something it can read.**<br>
+There a 9 cubie faces on each of the cube's face.<br>
+From now on I will refer to these smaller faces as facelets.<br>
+The amount of facelets are 9x6=54.<br>
+My idea is to assign each facelet a value and also a colour.<br>
+This means that all I am going to do is try to move the cube until the values match up with the values and colours of the solved state.<br>
+
+**How to write the actual algorithm.**<br>
+I think that just making the algorithm try to solve the cube wouldn't be a great idea as the depth would be 20 from God's number.<br>
+I think instead I will solve it more like how a human would by splitting it into phases.<br>
+First phase would solve for the white cross.<br>
+Second would solve for the white corners.<br>
+Third would solve for the second layers edges.<br>
+The fourth would just do the rest.<br>
+Im shoving all the other phases into the fourth because I feel like most of the cube is done and should be able to brute force the rest but I might change this later, we'll see.<br>
+This would mean that I wouldn't be solving for the fastest solution but rather just a solution quickly.<br>
+One thing I should remember is that each of them would need their own heuristic and those heuristics need to keep the state from the previous phase disclduing the first one obviously.<br>
