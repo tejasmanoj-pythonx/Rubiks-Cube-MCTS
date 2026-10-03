@@ -35,17 +35,35 @@ class Main:
                     # This is why scramble() method uses an angle of 9 instead of 3 so that the 10 consecutive moves finish faster.
                     if self.renderer.animating == False: 
                         if event.key == pygame.K_r or event.key == pygame.K_1:
-                            self.renderer.start_animating_face("right", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("right", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("right", 3, "clockwise")
                         elif event.key == pygame.K_l or event.key == pygame.K_2:
-                            self.renderer.start_animating_face("left", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("left", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("left", 3, "clockwise")
                         elif event.key == pygame.K_u or event.key == pygame.K_3:
-                            self.renderer.start_animating_face("up", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("up", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("up", 3, "clockwise")
                         elif event.key == pygame.K_d or event.key == pygame.K_4:
-                            self.renderer.start_animating_face("down", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("down", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("down", 3, "clockwise")
                         elif event.key == pygame.K_f or event.key == pygame.K_5:
-                            self.renderer.start_animating_face("front", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("front", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("front", 3, "clockwise")
                         elif event.key == pygame.K_b or event.key == pygame.K_6:
-                            self.renderer.start_animating_face("back", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("back", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("back", 3, "clockwise")
                         elif event.key == pygame.K_s:
                             self.renderer.scramble()
 

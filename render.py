@@ -208,7 +208,7 @@ class Renderer:
         # An angle of 9 means the face is rotating for 10 frames up til 90 degrees.
         # This is faster than the regular 3 degree turns as it can take time for 10 moves to be animated.
         if not self.animating and self.choices:
-            self.start_animating_face(self.choices[0], 9)
+            self.start_animating_face(self.choices[0][0], 9, self.choices[0][1])
             self.choices.pop(0)
 
         self.screen.fill(bg_colour) # Clear the screen by painting over it with grey.
@@ -305,7 +305,7 @@ class Renderer:
         return face_cubies
 
     # Used to start an animation by setting up all the information animate_face() needs to perform a face turn.
-    def start_animating_face(self, face, angle):
+    def start_animating_face(self, face, angle, direction):
         # animate_face() needs to know what face to animate, what cubies are in that face and the speed of the animation which is given in degrees.
         # Passing in 3 degrees are for manual face turns and finish in 90 degrees / 3 degrees = 30 frames.
         # Passing in 9 degrees are for scramble face turns and finish in 90 degrees / 9 degrees = 10 frames.
@@ -313,8 +313,13 @@ class Renderer:
         self.face = face
         self.face_cubies = self.get_cubies_face(self.face)
         self.current_angle = 0
-        self.increment_angle = angle
-
+        if direction == "clockwise":
+            self.direction = 1
+        else:
+            self.direction = -1
+        self.increment_angle = angle * self.direction
+        self.ending_angle = 90 * self.direction
+            
     # Used at the start of every draw_cube() call to animate any face turns if needed.
     def animate_face(self):
         # If no face turns needs to be animated then return immediately. 
@@ -322,7 +327,7 @@ class Renderer:
             return
         
         # Once the face has finished a complete 90 degree turn stop animating in the future.
-        if self.current_angle == 90:
+        if self.current_angle == self.ending_angle:
             self.animating = False
             
             # Make a 90 degree rotation matrix for this face.
@@ -331,7 +336,7 @@ class Renderer:
             # This means when using the rotation matrices the values are only an estimate and are eventually rounded.
             # This causes an issue called floating point error and is not really noticed when using the rotation matrix once.
             # But if we were to do 30 3 degree turns the ever so slight floating point error would accumulate and break the cube.
-            angle = math.radians(90)
+            angle = math.radians(self.ending_angle)
             for cubie in self.face_cubies:
                 if self.face == "right":
                     rotation = rotate_x(angle)
@@ -355,7 +360,12 @@ class Renderer:
                 cubie.y = int(round(new_position[1]))
                 cubie.z = int(round(new_position[2]))
 
-            self.rotate_facelets(self.face)
+            if self.direction == 1:
+                turn = 1
+            else:
+                turn = 3
+            for i in range(turn):
+                self.rotate_facelets(self.face)
 
             return
         
@@ -390,9 +400,11 @@ class Renderer:
         # draw_cube() will remove a face, one move at a time so that the 10 chosen moves will be animated in sequence.
         # The reason why it is 10 moves as any longer will make the algorithm take too long to solve.
         faces = ["right", "left", "up", "down", "front", "back"]
+        directions = ["clockwise", "anticlockwise"]
         for i in range(10):
-            choice = random.choice(faces)
-            self.choices.append(choice)
+            face_choice = random.choice(faces)
+            direction_choice = random.choice(directions)
+            self.choices.append((face_choice, direction_choice))
 
     def rotate_facelets(self, face):
         old_facelets = self.facelets.copy()
