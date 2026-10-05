@@ -2,6 +2,7 @@ import pygame      # Used to draw squares and update the display.
 import numpy as np # Used to format lists into matrices and perform matrix operations like dot and cross product.
 import math        # Used for the sine and cosine functions in the rotation matrices.
 import random      # Used to pick random faces for the scramble() method.
+import algorithm
 
 # Colours
 # Each colour is a tuple that represents an RGB value, three values between 0 and 255.
@@ -165,14 +166,7 @@ class Renderer:
         for position in cubie_positions:
             self.cubies.append(Cubie(position))
 
-        self.facelets = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1,
-            2, 2, 2, 2, 2, 2, 2, 2, 2,
-            3, 3, 3, 3, 3, 3, 3, 3, 3,
-            4, 4, 4, 4, 4, 4, 4, 4, 4,
-            5, 5, 5, 5, 5, 5, 5, 5, 5
-        ]
+        self.facelets = algorithm.Facelets()
 
         # self.animating is true while a face turn is in progress, and false while it isn't.
         # It is used to block multiple turns trying to animate at the same time in main.py and is also checked in draw_cube() to start the next scrambled face.
@@ -196,7 +190,7 @@ class Renderer:
         # This is done so that the point 0, 0, 0 would project to the middle of the screen.
         # int() converts the values into whole numbers because screen coordinates can't be floats.
         projected_x = int((x / (camera_distance - z)) * fov + (self.screen_width / 2))
-        projected_y = int((y / (camera_distance - z)) * fov + (self.screen_height / 2))
+        projected_y = int(((y * -1) / (camera_distance - z)) * fov + (self.screen_height / 2))
 
         return projected_x, projected_y
     
@@ -314,9 +308,9 @@ class Renderer:
         self.face_cubies = self.get_cubies_face(self.face)
         self.current_angle = 0
         if direction == "clockwise":
-            self.direction = 1
-        else:
             self.direction = -1
+        else:
+            self.direction = 1
         self.increment_angle = angle * self.direction
         self.ending_angle = 90 * self.direction
             
@@ -360,12 +354,7 @@ class Renderer:
                 cubie.y = int(round(new_position[1]))
                 cubie.z = int(round(new_position[2]))
 
-            if self.direction == 1:
-                turn = 1
-            else:
-                turn = 3
-            for i in range(turn):
-                self.rotate_facelets(self.face)
+            self.facelets.apply_move(self.face, self.direction)
 
             return
         
@@ -405,83 +394,3 @@ class Renderer:
             face_choice = random.choice(faces)
             direction_choice = random.choice(directions)
             self.choices.append((face_choice, direction_choice))
-
-    def rotate_facelets(self, face):
-        old_facelets = self.facelets.copy()
-
-        if face == "right":
-            start = 0
-            surrounding_facelets = [
-                [26, 23, 20],
-                [45, 48, 51],
-                [35, 32, 29],
-                [44, 41, 38]
-            ]
-        elif face == "left":
-            start = 9
-            surrounding_facelets = [
-                [18, 21, 24],
-                [36, 39, 42],
-                [27, 30, 33],
-                [53, 50, 47]
-            ]
-        elif face == "up":
-            start = 18
-            surrounding_facelets = [
-                [47, 46, 45],
-                [2, 1, 0],
-                [38, 37, 36],
-                [11, 10, 9]
-            ]
-        elif face == "down":
-            start = 27
-            surrounding_facelets = [
-                [42, 43, 44],
-                [6, 7, 8],
-                [51, 52, 53],
-                [15, 16, 17]
-            ]
-        elif face == "front":
-            start = 36
-            surrounding_facelets = [
-                [24, 25, 26],
-                [0, 3, 6],
-                [29, 28, 27],
-                [17, 14, 11]
-            ]
-        elif face == "back":
-            start = 45
-            surrounding_facelets = [
-                [20, 19, 18],
-                [9, 12, 15],
-                [33, 34, 35],
-                [8, 5, 2]
-            ]
-
-        self.facelets[start] = old_facelets[start+6]
-        self.facelets[start+1] = old_facelets[start+3]
-        self.facelets[start+2] = old_facelets[start]
-
-        self.facelets[start+3] = old_facelets[start+7]
-        self.facelets[start+4] = old_facelets[start+4]
-        self.facelets[start+5] = old_facelets[start+1]
-
-        self.facelets[start+6] = old_facelets[start+8]
-        self.facelets[start+7] = old_facelets[start+5]
-        self.facelets[start+8] = old_facelets[start+2]
-
-        self.facelets[surrounding_facelets[0][0]] = old_facelets[surrounding_facelets[3][0]]
-        self.facelets[surrounding_facelets[0][1]] = old_facelets[surrounding_facelets[3][1]]
-        self.facelets[surrounding_facelets[0][2]] = old_facelets[surrounding_facelets[3][2]]
-
-        self.facelets[surrounding_facelets[1][0]] = old_facelets[surrounding_facelets[0][0]]
-        self.facelets[surrounding_facelets[1][1]] = old_facelets[surrounding_facelets[0][1]]
-        self.facelets[surrounding_facelets[1][2]] = old_facelets[surrounding_facelets[0][2]]
-
-        self.facelets[surrounding_facelets[2][0]] = old_facelets[surrounding_facelets[1][0]]
-        self.facelets[surrounding_facelets[2][1]] = old_facelets[surrounding_facelets[1][1]]
-        self.facelets[surrounding_facelets[2][2]] = old_facelets[surrounding_facelets[1][2]]
-
-        self.facelets[surrounding_facelets[3][0]] = old_facelets[surrounding_facelets[2][0]]
-        self.facelets[surrounding_facelets[3][1]] = old_facelets[surrounding_facelets[2][1]]
-        self.facelets[surrounding_facelets[3][2]] = old_facelets[surrounding_facelets[2][2]]

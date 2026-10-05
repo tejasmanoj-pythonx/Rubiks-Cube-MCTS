@@ -88,9 +88,8 @@ class Main:
                         # Find the difference between the current x and y from the starting x and y.
                         # x_difference is the horizontal distance so a positive x moves rightwards and vice versa.
                         # y_difference is the vertical distance but due to pygame's positive y value moving downwards, the vertical movement is inverted.
-                        # To counteract this we multiply the y value by -1 to flip the axis so that positive y moves up and vice versa.
                         x_difference = x_current - self.mouse_position[0]
-                        y_difference = (y_current - self.mouse_position[1])*-1
+                        y_difference = y_current - self.mouse_position[1]
 
                         # Convert the differences in x and y into rotation angles.
                         # 0.005 is the sensitivity that scales everything down to smaller angle.
