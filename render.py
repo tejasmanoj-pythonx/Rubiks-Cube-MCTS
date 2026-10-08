@@ -354,7 +354,7 @@ class Renderer:
                 cubie.y = int(round(new_position[1]))
                 cubie.z = int(round(new_position[2]))
 
-            self.facelets.apply_move(self.face, self.direction)
+            self.facelets.apply_move(self.face, self.direction * -1)
 
             return
         

@@ -1,5 +1,6 @@
 import pygame      # Used for creating the window and event handling.
 import render      # Used for importing the Renderer class and rotation matrix functions.
+import algorithm
 import numpy as np # Used for combining matrices with matrix dot product.
 
 # Main class handles the pygame window, the game loop, and all the event handling. 
@@ -66,6 +67,15 @@ class Main:
                                 self.renderer.start_animating_face("back", 3, "clockwise")
                         elif event.key == pygame.K_s:
                             self.renderer.scramble()
+                        elif event.key == pygame.K_SPACE:
+                            if not self.renderer.choices:
+                                mcts = algorithm.MCTS(self.renderer.facelets)
+                                moves = mcts.main(algorithm.white_cross, 3000, 20)
+                                for move in moves:
+                                    if move[1] == 1:
+                                        self.renderer.choices.append((move[0], "clockwise"))
+                                    else:
+                                        self.renderer.choices.append((move[0], "anticlockwise"))
 
                 # Handles the cube rotation using mouse drag.
                 elif event.type == pygame.MOUSEBUTTONDOWN: 

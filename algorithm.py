@@ -1,3 +1,6 @@
+import math
+import random
+
 white_cross = [(19, 2), (23, 2), (25, 2), (21, 2), (1, 0), (10, 1), (37, 4), (46, 5)]
 white_corners = [(18, 2), (20, 2), (26, 2), (24, 2), (0, 0), (2, 0), (9, 1), (11, 1), (36, 4), (38, 4), (45, 5), (47, 5)]
 second_layer = [(3, 0), (5, 0), (12, 1), (14, 1), (39, 4), (41, 4), (48, 5), (50, 5)]
@@ -112,7 +115,7 @@ class Node:
         self.visits = 0
         self.score = 0
 
-        self.not_tried_moves = [
+        self.moves = [
             ("right", 1),
             ("right", -1),
             ("left", 1),
@@ -127,6 +130,8 @@ class Node:
             ("back", -1)
         ]
 
+        self.not_tried_moves = self.moves.copy()
+
     def make_child(self, move):
         facelet = Facelets()
         facelet.facelets = self.facelets.facelets.copy()
@@ -137,3 +142,108 @@ class Node:
         self.not_tried_moves.remove(move)
 
         return child
+
+class MCTS:
+    def __init__(self, facelets):
+        starting_facelets = Facelets()
+        starting_facelets.facelets = facelets.facelets.copy()
+        self.starting_node = Node(starting_facelets, None, None)
+
+    def selection(self):
+        current_node = self.starting_node
+
+        while not current_node.not_tried_moves and current_node.children:
+            current_best_child = None
+            current_best_value = -1
+
+            for child in current_node.children:
+                ucb1 = (child.score / child.visits) + (math.sqrt(2) * math.sqrt(math.log(current_node.visits) / child.visits))
+
+                if ucb1 > current_best_value:
+                    current_best_child = child
+                    current_best_value = ucb1
+
+            current_node = current_best_child
+
+        return current_node
+
+    def expand(self, node):
+        if node.not_tried_moves:
+            move = node.not_tried_moves[0]
+        else:
+            return
+
+        child = node.make_child(move)
+
+        return child
+
+    def simulation(self, node, goal):
+        facelets = Facelets()
+        facelets.facelets = node.facelets.facelets.copy()
+
+        best_current_score = 0
+
+        for index, colour in goal:
+            if facelets.facelets[index] == colour:
+                best_current_score += 1
+
+        for i in range(10):
+            number = random.randint(0, 11)
+            move = node.moves[number]
+
+            facelets.apply_move(move[0], move[1])
+
+            score = 0
+
+            for index, colour in goal:
+                if facelets.facelets[index] == colour:
+                    score += 1
+
+            if score > best_current_score:
+                best_current_score = score
+
+        return best_current_score / len(goal)
+
+    def backpropagation(self, node, score):
+        current_node = node
+
+        while current_node:
+            current_node.visits += 1
+            current_node.score += score
+
+            current_node = current_node.parent
+
+    def main(self, goal, iterations, move_amount):
+        moves = []
+
+        for i in range(move_amount):
+            score = 0
+
+            for index, colour in goal:
+                if self.starting_node.facelets.facelets[index] == colour:
+                    score += 1
+
+            if score == len(goal):
+                break
+
+            
+            for i in range(iterations):
+                node = self.selection()
+                node = self.expand(node)
+                score = self.simulation(node, goal)
+                self.backpropagation(node, score)
+
+            current_best_child = None
+            most_visits = -1
+
+            for child in self.starting_node.children:
+                if child.visits > most_visits:
+                    current_best_child = child
+                    most_visits = child.visits
+
+            moves.append(current_best_child.move)
+
+            current_best_child.parent = None
+            self.starting_node = current_best_child
+
+        return moves
