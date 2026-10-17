@@ -4,6 +4,9 @@ import math        # Used for the sine and cosine functions in the rotation matr
 import random      # Used to pick random faces for the scramble() method.
 import algorithm
 
+pygame.font.init()
+font = pygame.font.Font(None, 20)
+
 # Colours
 # Each colour is a tuple that represents an RGB value, three values between 0 and 255.
 # Each value represents how much red, green and blue is mixed together.
@@ -175,6 +178,34 @@ class Renderer:
         # self.choices acts as a queue and is a list of face names that are applied in that order.
         # scramble() fills this list with 10 random faces and draw_cube() will animate it and remove from it, on move at a time, only when the previous is done animating.
         self.choices = []
+
+        self.stat = []
+
+    def controls(self):
+        text = ["Controls",
+                "R or 1 Right Turn",
+                "L or 2 Left Turn",
+                "U or 3 Up Turn",
+                "D or 4 Down Turn",
+                "F or 5 Front Turn",
+                "B or 6 Back Turn",
+                "Hold Shift Turn Anticlockwise",
+                "S Scramble",
+                "Space Solve"
+                ]
+
+        y = 10
+        for line in text:
+            words = font.render(line, True, white)
+            self.screen.blit(words, (10, y))
+            y += 20
+
+    def stats(self):
+        y = 10
+        for line in self.stat:
+            words = font.render(line, True, white)
+            self.screen.blit(words, (540, y))
+            y += 20
     
     # Converts a single 3D point into a 2D screen point.
     def project_point(self, point):
@@ -270,6 +301,8 @@ class Renderer:
         # Draw each square onto the pygame window using it's respective colour and points.
         for colour, vertices, z_average in visible_faces:
             pygame.draw.polygon(self.screen, colour, vertices)
+        self.controls()
+        self.stats()
         pygame.display.update()
 
     # Returns 9 cubies that belong to the given face.
