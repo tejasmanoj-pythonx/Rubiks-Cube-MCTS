@@ -2,6 +2,7 @@ import pygame      # Used for creating the window and event handling.
 import render      # Used for importing the Renderer class and rotation matrix functions.
 import algorithm
 import numpy as np # Used for combining matrices with matrix dot product.
+import time
 
 # Main class handles the pygame window, the game loop, and all the event handling. 
 class Main:
@@ -70,12 +71,26 @@ class Main:
                         elif event.key == pygame.K_SPACE:
                             if not self.renderer.choices:
                                 mcts = algorithm.MCTS(self.renderer.facelets)
-                                moves = mcts.main(algorithm.white_cross, 3000, 20)
+                                cross_moves = mcts.main(algorithm.white_cross, 8, 3000, 20)
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                corner_moves  = mcts.main(algorithm.white_corners, 20, 4000, 40)
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                second_layer_moves  = mcts.main(algorithm.second_layer, 28, 4000, 60)
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                yellow_cross_moves  = mcts.main(algorithm.yellow_cross, 32, 4000, 60)
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                yellow_face_moves  = mcts.main(algorithm.yellow_face, 36, 4000, 60)
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                yellow_edges_moves  = mcts.main(algorithm.yellow_edges, 40, 4000, 60)
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                yellow_corners_moves  = mcts.main(algorithm.yellow_corners, 48, 4000, 60)
+                                moves = cross_moves + corner_moves + second_layer_moves + yellow_cross_moves + yellow_face_moves + yellow_edges_moves + yellow_corners_moves
                                 for move in moves:
                                     if move[1] == 1:
                                         self.renderer.choices.append((move[0], "clockwise"))
                                     else:
                                         self.renderer.choices.append((move[0], "anticlockwise"))
+                                
 
                 # Handles the cube rotation using mouse drag.
                 elif event.type == pygame.MOUSEBUTTONDOWN: 

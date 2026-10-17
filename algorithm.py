@@ -2,9 +2,14 @@ import math
 import random
 
 white_cross = [(19, 2), (23, 2), (25, 2), (21, 2), (1, 0), (10, 1), (37, 4), (46, 5)]
-white_corners = [(18, 2), (20, 2), (26, 2), (24, 2), (0, 0), (2, 0), (9, 1), (11, 1), (36, 4), (38, 4), (45, 5), (47, 5)]
+white_corners = [(18, 2), (0, 0), (36, 4), (20, 2), (2, 0), (38, 4), (26, 2), (9, 1), (45, 5), (24, 2), (11, 1), (47, 5)]
 second_layer = [(3, 0), (5, 0), (12, 1), (14, 1), (39, 4), (41, 4), (48, 5), (50, 5)]
-everything_else = [(6, 0), (7, 0), (8, 0), (15, 1), (16, 1), (17, 1), (42, 4), (43, 4), (44, 4), (51, 5), (52, 5), (53, 5), (27, 3), (28, 3), (29, 3), (30, 3), (32, 3), (33, 3), (34, 3), (35, 3)]
+yellow_cross = [(28, 3), (30, 3), (32, 3), (34, 3)]
+yellow_face = [(27, 3), (29, 3), (33, 3),  (35, 3)]
+yellow_edges = [(7, 0), (16, 1), (43, 4), (52, 5)]
+yellow_corners = [(6, 0), (8, 0), (15, 1), (17, 1), (42, 4), (44, 4), (51, 5), (53, 5), ]
+
+phases = [white_cross, white_corners, second_layer, yellow_cross, yellow_face, yellow_edges, yellow_corners]
 
 class Facelets:
     def __init__(self):
@@ -116,27 +121,41 @@ class Node:
         self.score = 0
 
         self.moves = [
-            ("right", 1),
-            ("right", -1),
-            ("left", 1),
-            ("left", -1),
-            ("up", 1),
-            ("up", -1),
-            ("down", 1),
-            ("down", -1),
-            ("front", 1),
-            ("front", -1),
-            ("back", 1),
-            ("back", -1)
+            (("right", 1),),
+            (("right", -1),),
+            (("left", 1),),
+            (("left", -1),),
+            (("up", 1),),
+            (("up", -1),),
+            (("down", 1),),
+            (("down", -1),),
+            (("front", 1),),
+            (("front", -1),),
+            (("back", 1),),
+            (("back", -1),),
+
+            (("right", 1), ("down", 1), ("right", -1), ("down", -1)),
+            (("right", -1), ("down", -1), ("right", 1), ("down", 1)),
+            (("left", 1), ("down", 1), ("left", -1), ("down", -1)),
+            (("left", -1), ("down", -1), ("left", 1), ("down", 1)),
+            (("front", 1), ("down", 1), ("front", -1), ("down", -1)),
+            (("front", -1), ("down", -1), ("front", 1), ("down", 1)),
+            (("back", 1), ("down", 1), ("back", -1), ("down", -1)),
+            (("back", -1), ("down", -1), ("back", 1), ("down", 1))
         ]
 
         self.not_tried_moves = self.moves.copy()
+
+        if move != None and len(move) == 1:
+            self.not_tried_moves.remove(((move[0][0], move[0][1] * -1),))
+
 
     def make_child(self, move):
         facelet = Facelets()
         facelet.facelets = self.facelets.facelets.copy()
 
-        facelet.apply_move(move[0], move[1])
+        for turn in move:
+            facelet.apply_move(turn[0], turn[1])
         child = Node(facelet, move, self)
         self.children.append(child)
         self.not_tried_moves.remove(move)
@@ -157,7 +176,8 @@ class MCTS:
             current_best_value = -1
 
             for child in current_node.children:
-                ucb1 = (child.score / child.visits) + (math.sqrt(2) * math.sqrt(math.log(current_node.visits) / child.visits))
+
+                ucb1 = ((child.score / child.visits) / self.goal_score)+ (0.25 * math.sqrt(math.log(current_node.visits) / child.visits))
 
                 if ucb1 > current_best_value:
                     current_best_child = child
@@ -181,28 +201,21 @@ class MCTS:
         facelets = Facelets()
         facelets.facelets = node.facelets.facelets.copy()
 
-        best_current_score = 0
-
-        for index, colour in goal:
-            if facelets.facelets[index] == colour:
-                best_current_score += 1
+        best_current_score = self.scoring(facelets, goal)
 
         for i in range(10):
             number = random.randint(0, 11)
             move = node.moves[number]
 
-            facelets.apply_move(move[0], move[1])
+            for turn in move:
+                facelets.apply_move(turn[0], turn[1])
 
-            score = 0
-
-            for index, colour in goal:
-                if facelets.facelets[index] == colour:
-                    score += 1
+            score = self.scoring(facelets, goal)
 
             if score > best_current_score:
                 best_current_score = score
 
-        return best_current_score / len(goal)
+        return best_current_score
 
     def backpropagation(self, node, score):
         current_node = node
@@ -213,37 +226,76 @@ class MCTS:
 
             current_node = current_node.parent
 
-    def main(self, goal, iterations, move_amount):
+    def scoring(self, facelets, goal):
+        score = 0
+
+        index = phases.index(goal)
+        if index != 0:
+            phase_before = index - 1
+            score += self.scoring(facelets, phases[phase_before])
+
+        for index, colour in goal:
+            if facelets.facelets[index] == colour:
+                score += 1
+
+        return score
+
+    def main(self, goal, goal_score, iterations, move_amount):
         moves = []
+        self.goal_score = goal_score
 
         for i in range(move_amount):
-            score = 0
 
-            for index, colour in goal:
-                if self.starting_node.facelets.facelets[index] == colour:
-                    score += 1
+            score = self.scoring(self.starting_node.facelets, goal)
 
-            if score == len(goal):
+            if score == goal_score:
                 break
 
-            
+            best_node = None
+            best_node_score = score
+                
             for i in range(iterations):
+                
                 node = self.selection()
                 node = self.expand(node)
                 score = self.simulation(node, goal)
                 self.backpropagation(node, score)
 
-            current_best_child = None
-            most_visits = -1
+                node_score = self.scoring(node.facelets, goal)
+                if node_score > best_node_score:
+                    best_node = node
+                    best_node_score = node_score
 
-            for child in self.starting_node.children:
-                if child.visits > most_visits:
-                    current_best_child = child
-                    most_visits = child.visits
+            if best_node is not None:
+                path = []
+                current_node = best_node
 
-            moves.append(current_best_child.move)
+                while current_node.parent is not None:
+                    path.append(current_node.move)
+                    current_node = current_node.parent
 
-            current_best_child.parent = None
-            self.starting_node = current_best_child
+                path.reverse()
+                for move in path:
+                    moves += move
 
+                print(len(moves), best_node_score)
+
+                best_node.parent = None
+                self.starting_node = best_node
+
+            else:
+                current_best_child = None
+                most_visits = -1
+
+                for child in self.starting_node.children:
+                    if child.visits > most_visits:
+                        current_best_child = child
+                        most_visits = child.visits
+
+                moves += current_best_child.move
+                print(len(moves), self.scoring(current_best_child.facelets, goal))
+
+                current_best_child.parent = None
+                self.starting_node = current_best_child
+        print(phases.index(goal))
         return moves
