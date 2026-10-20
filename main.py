@@ -66,15 +66,25 @@ class Main:
                                 self.renderer.start_animating_face("back", 3, "anticlockwise")
                             else:
                                 self.renderer.start_animating_face("back", 3, "clockwise")
+
+                        # Clears out the statistics on the screen and scrambles the cube
                         elif event.key == pygame.K_s:
                             self.renderer.scramble()
+                            self.renderer.stat = []
+
+                        # Pressing space is used to solve the cube
                         elif event.key == pygame.K_SPACE:
                             if not self.renderer.choices:
+                                # First clear out the statistics, indicate that the cube is solcing and record the time
                                 self.renderer.stat = []
                                 self.renderer.stat.append("Solving...")
                                 self.renderer.draw_cube()
                                 start_time = time.perf_counter()
 
+                                # Makes an instance of MCTS passing in the current state of the cube
+                                # An iteration budget and move_amount are set here to cap each phase
+                                # There are different values for each of these depending if they are more difficult or not to reach
+                                # Statistics about the amount of moves and time taken to solve for that phase are also shown onto the screen.
                                 mcts = algorithm.MCTS(self.renderer.facelets)
                                 cross_moves = mcts.main(algorithm.white_cross, 8, 3000, 20)
                                 white_cross_time = time.perf_counter()
@@ -103,12 +113,16 @@ class Main:
                                 self.renderer.stat.append("Yellow Cross took " + str(round(time_taken, 3)) + "s and " + str(len(yellow_cross_moves)) + " moves")
                                 self.renderer.draw_cube()
 
+                                # These phases currently don't work currently
+                                # This is because the specific sequence of moves needed like the Sune algorithm are way too long
+                                # Meaning that the chance MCTS finds this sequences is incredibily low
                                 # mcts = algorithm.MCTS(mcts.starting_node.facelets)
                                 # yellow_face_moves  = mcts.main(algorithm.yellow_face, 36, 4000, 60)
                                 # mcts = algorithm.MCTS(mcts.starting_node.facelets)
                                 # yellow_edges_moves  = mcts.main(algorithm.yellow_edges, 40, 4000, 60)
                                 # mcts = algorithm.MCTS(mcts.starting_node.facelets)
                                 # yellow_corners_moves  = mcts.main(algorithm.yellow_corners, 48, 4000, 60)
+
                                 moves = cross_moves + corner_moves + second_layer_moves + yellow_cross_moves #+ yellow_face_moves + yellow_edges_moves + yellow_corners_moves
                                 self.renderer.stat.append("Total moves: " + str(len(moves)))
                                 for move in moves:

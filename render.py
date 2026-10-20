@@ -27,7 +27,6 @@ orange = (255, 135, 35)
 camera_distance = 6 
 
 # fov is the scale factor that controls how zoomed into the cube we are.
-# A larger value would make the cube look bigger on the screen and vice versa.
 fov = 300 
 
 # Each cubie is originally two units and went from -1 to +1 on each axis making the size 2 (-1 to 0, 0 to +1).
@@ -140,7 +139,7 @@ class Cubie:
             ([3, 0, 4, 7], left),   # Left
         ]
 
-# Renderer class does everything that's visual, stores the 27 cubies, projects the 3D points onto the 2D screen, runs back face culling, sorts faces by depth and draws them with pygame.
+# Renderer class does everything that's visual.
 class Renderer:
     def __init__(self, screen):
         # Take the window from the Main class along with it's dimensions.
@@ -169,6 +168,8 @@ class Renderer:
         for position in cubie_positions:
             self.cubies.append(Cubie(position))
 
+        # At the start the facelets are in its solved state
+        # This is used so we can track the rotation alongside the user rotating it
         self.facelets = algorithm.Facelets()
 
         # self.animating is true while a face turn is in progress, and false while it isn't.
@@ -179,8 +180,10 @@ class Renderer:
         # scramble() fills this list with 10 random faces and draw_cube() will animate it and remove from it, on move at a time, only when the previous is done animating.
         self.choices = []
 
+        # This is a list that holds text that relate to information about the solve that is then blitted onto the screen with stats()
         self.stat = []
 
+    # Used to display the controls onto the left hand side of the screen
     def controls(self):
         text = ["Controls",
                 "R or 1 Right Turn",
@@ -194,12 +197,14 @@ class Renderer:
                 "Space Solve"
                 ]
 
+        # Keep blitting each word and moving down 20 pixels before the next
         y = 10
         for line in text:
             words = font.render(line, True, white)
             self.screen.blit(words, (10, y))
             y += 20
 
+    # Same process as the controls() but for the statistics
     def stats(self):
         y = 10
         for line in self.stat:
@@ -209,7 +214,7 @@ class Renderer:
     
     # Converts a single 3D point into a 2D screen point.
     def project_point(self, point):
-        # Split the point into it's respesctive x, y and z.
+        # Split the point into it's respective x, y and z.
         x = point[0]
         y = point[1]
         z = point[2]
@@ -247,7 +252,6 @@ class Renderer:
             # self.rotation was meant to be used against a point that would be in the form of a column (3x1).
             # cubie.vertices stores all 8 points as rows so they are defined as row vectors.
             # This means when applying the dot product the rotation is reversed because of the mismatch.
-            # Using the transpose we fix this mismatch without changing any values just the fact that it is now in row vector form.
             rotated = np.dot(cubie.vertices, self.rotation.T)
 
             # Project all 8 rotated vertices into 2D screen coordinates.
@@ -277,7 +281,7 @@ class Renderer:
 
                 # Add all four points from a face and divide by 4 for the average Z value of that face.
                 # This is done only for the Z value because it represents how close the face is to the camera.
-                # This average is  how far the face as a whole is from the camera.
+                # This average is how far the face as a whole is from the camera.
                 # We have to use the 3D Z values because the projected point doesn't have a Z value.
                 z_total = 0
                 for point in points:
