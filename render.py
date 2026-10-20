@@ -139,6 +139,44 @@ class Cubie:
             ([3, 0, 4, 7], left),   # Left
         ]
 
+class Text:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.text = []
+
+    def draw(self, screen):
+        y = self.y
+
+        # Keep blitting each word and moving down 20 pixels before the next
+        for line in self.text:
+            words = font.render(line, True, white)
+            screen.blit(words, (self.x, y))
+            y += 20
+
+# Used to display the controls onto the left hand side of the screen
+class ControlsText(Text):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.text = ["Controls",
+                "R or 1 Right Turn",
+                "L or 2 Left Turn",
+                "U or 3 Up Turn",
+                "D or 4 Down Turn",
+                "F or 5 Front Turn",
+                "B or 6 Back Turn",
+                "Hold Shift Turn Anticlockwise",
+                "S Scramble",
+                "Space Solve"
+                ]
+
+class StatsText(Text):
+    def add_line(self, words):
+        self.text.append(words)
+
+    def clear(self):
+        self.text = []
+
 # Renderer class does everything that's visual.
 class Renderer:
     def __init__(self, screen):
@@ -180,37 +218,9 @@ class Renderer:
         # scramble() fills this list with 10 random faces and draw_cube() will animate it and remove from it, on move at a time, only when the previous is done animating.
         self.choices = []
 
-        # This is a list that holds text that relate to information about the solve that is then blitted onto the screen with stats()
-        self.stat = []
-
-    # Used to display the controls onto the left hand side of the screen
-    def controls(self):
-        text = ["Controls",
-                "R or 1 Right Turn",
-                "L or 2 Left Turn",
-                "U or 3 Up Turn",
-                "D or 4 Down Turn",
-                "F or 5 Front Turn",
-                "B or 6 Back Turn",
-                "Hold Shift Turn Anticlockwise",
-                "S Scramble",
-                "Space Solve"
-                ]
-
-        # Keep blitting each word and moving down 20 pixels before the next
-        y = 10
-        for line in text:
-            words = font.render(line, True, white)
-            self.screen.blit(words, (10, y))
-            y += 20
-
-    # Same process as the controls() but for the statistics
-    def stats(self):
-        y = 10
-        for line in self.stat:
-            words = font.render(line, True, white)
-            self.screen.blit(words, (540, y))
-            y += 20
+        # These are objects used to display the controls and solving statistics onto the screen.
+        self.controls = ControlsText(10, 10)
+        self.stats = StatsText(540, 10)
     
     # Converts a single 3D point into a 2D screen point.
     def project_point(self, point):
@@ -305,8 +315,8 @@ class Renderer:
         # Draw each square onto the pygame window using it's respective colour and points.
         for colour, vertices, z_average in visible_faces:
             pygame.draw.polygon(self.screen, colour, vertices)
-        self.controls()
-        self.stats()
+        self.controls.draw(self.screen)
+        self.stats.draw(self.screen)
         pygame.display.update()
 
     # Returns 9 cubies that belong to the given face.

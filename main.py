@@ -70,14 +70,14 @@ class Main:
                         # Clears out the statistics on the screen and scrambles the cube
                         elif event.key == pygame.K_s:
                             self.renderer.scramble()
-                            self.renderer.stat = []
+                            self.renderer.stats.clear()
 
                         # Pressing space is used to solve the cube
                         elif event.key == pygame.K_SPACE:
                             if not self.renderer.choices:
                                 # First clear out the statistics, indicate that the cube is solcing and record the time
-                                self.renderer.stat = []
-                                self.renderer.stat.append("Solving...")
+                                self.renderer.stats.clear()
+                                self.renderer.stats.add_line("Solving...")
                                 self.renderer.draw_cube()
                                 start_time = time.perf_counter()
 
@@ -89,28 +89,28 @@ class Main:
                                 cross_moves = mcts.main(algorithm.white_cross, 8, 3000, 20)
                                 white_cross_time = time.perf_counter()
                                 time_taken = white_cross_time - start_time
-                                self.renderer.stat.append("White Cross took " + str(round(time_taken, 3)) + "s and " + str(len(cross_moves)) + " moves")
+                                self.renderer.stats.add_line("White Cross took " + str(round(time_taken, 3)) + "s and " + str(len(cross_moves)) + " moves")
                                 self.renderer.draw_cube()
 
                                 mcts = algorithm.MCTS(mcts.starting_node.facelets)
                                 corner_moves  = mcts.main(algorithm.white_corners, 20, 4000, 40)
                                 white_corner_time = time.perf_counter()
                                 time_taken = white_corner_time - white_cross_time
-                                self.renderer.stat.append("White Corner took " + str(round(time_taken, 3)) + "s and " + str(len(corner_moves)) + " moves")
+                                self.renderer.stats.add_line("White Corner took " + str(round(time_taken, 3)) + "s and " + str(len(corner_moves)) + " moves")
                                 self.renderer.draw_cube()
 
                                 mcts = algorithm.MCTS(mcts.starting_node.facelets)
                                 second_layer_moves  = mcts.main(algorithm.second_layer, 28, 4000, 60)
                                 second_layer_time = time.perf_counter()
                                 time_taken = second_layer_time - white_corner_time
-                                self.renderer.stat.append("Second Layer took " + str(round(time_taken, 3)) + "s and " + str(len(second_layer_moves)) + " moves")
+                                self.renderer.stats.add_line("Second Layer took " + str(round(time_taken, 3)) + "s and " + str(len(second_layer_moves)) + " moves")
                                 self.renderer.draw_cube()
 
                                 mcts = algorithm.MCTS(mcts.starting_node.facelets)
                                 yellow_cross_moves  = mcts.main(algorithm.yellow_cross, 32, 4000, 60)
                                 yellow_cross_time = time.perf_counter()
                                 time_taken = yellow_cross_time - second_layer_time
-                                self.renderer.stat.append("Yellow Cross took " + str(round(time_taken, 3)) + "s and " + str(len(yellow_cross_moves)) + " moves")
+                                self.renderer.stats.add_line("Yellow Cross took " + str(round(time_taken, 3)) + "s and " + str(len(yellow_cross_moves)) + " moves")
                                 self.renderer.draw_cube()
 
                                 # These phases currently don't work currently
@@ -124,7 +124,7 @@ class Main:
                                 # yellow_corners_moves  = mcts.main(algorithm.yellow_corners, 48, 4000, 60)
 
                                 moves = cross_moves + corner_moves + second_layer_moves + yellow_cross_moves #+ yellow_face_moves + yellow_edges_moves + yellow_corners_moves
-                                self.renderer.stat.append("Total moves: " + str(len(moves)))
+                                self.renderer.stats.add_line("Total moves: " + str(len(moves)))
                                 for move in moves:
                                     if move[1] == 1:
                                         self.renderer.choices.append((move[0], "clockwise"))
