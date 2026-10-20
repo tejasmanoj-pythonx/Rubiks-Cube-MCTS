@@ -2,6 +2,10 @@ import pygame      # Used to draw squares and update the display.
 import numpy as np # Used to format lists into matrices and perform matrix operations like dot and cross product.
 import math        # Used for the sine and cosine functions in the rotation matrices.
 import random      # Used to pick random faces for the scramble() method.
+import algorithm
+
+pygame.font.init()
+font = pygame.font.Font(None, 20)
 
 # Colours
 # Each colour is a tuple that represents an RGB value, three values between 0 and 255.
@@ -23,7 +27,6 @@ orange = (255, 135, 35)
 camera_distance = 6 
 
 # fov is the scale factor that controls how zoomed into the cube we are.
-# A larger value would make the cube look bigger on the screen and vice versa.
 fov = 300 
 
 # Each cubie is originally two units and went from -1 to +1 on each axis making the size 2 (-1 to 0, 0 to +1).
@@ -87,8 +90,6 @@ class Cubie:
         ])
 
         # Scale the cubie down and then shift it to it's respective grid position.
-        # Numpy treats cube_scale as a scalar value and applies it individually to every number in the matrix.
-        # Numpy also does the addition by adding the tuple grid position, to each row in the matrix. 
         self.vertices = (self.vertices * cube_scale) + grid_position
 
         # This decides which colour each face gets depending on the cubie's grid position.
@@ -138,7 +139,7 @@ class Cubie:
             ([3, 0, 4, 7], left),   # Left
         ]
 
-# Renderer class does everything that's visual, stores the 27 cubies, projects the 3D points onto the 2D screen, runs back face culling, sorts faces by depth and draws them with pygame.
+# Renderer class does everything that's visual.
 class Renderer:
     def __init__(self, screen):
         # Take the window from the Main class along with it's dimensions.
@@ -166,7 +167,11 @@ class Renderer:
         self.cubies = []
         for position in cubie_positions:
             self.cubies.append(Cubie(position))
-        
+
+        # At the start the facelets are in its solved state
+        # This is used so we can track the rotation alongside the user rotating it
+        self.facelets = algorithm.Facelets()
+
         # self.animating is true while a face turn is in progress, and false while it isn't.
         # It is used to block multiple turns trying to animate at the same time in main.py and is also checked in draw_cube() to start the next scrambled face.
         self.animating = False
@@ -174,10 +179,42 @@ class Renderer:
         # self.choices acts as a queue and is a list of face names that are applied in that order.
         # scramble() fills this list with 10 random faces and draw_cube() will animate it and remove from it, on move at a time, only when the previous is done animating.
         self.choices = []
+
+        # This is a list that holds text that relate to information about the solve that is then blitted onto the screen with stats()
+        self.stat = []
+
+    # Used to display the controls onto the left hand side of the screen
+    def controls(self):
+        text = ["Controls",
+                "R or 1 Right Turn",
+                "L or 2 Left Turn",
+                "U or 3 Up Turn",
+                "D or 4 Down Turn",
+                "F or 5 Front Turn",
+                "B or 6 Back Turn",
+                "Hold Shift Turn Anticlockwise",
+                "S Scramble",
+                "Space Solve"
+                ]
+
+        # Keep blitting each word and moving down 20 pixels before the next
+        y = 10
+        for line in text:
+            words = font.render(line, True, white)
+            self.screen.blit(words, (10, y))
+            y += 20
+
+    # Same process as the controls() but for the statistics
+    def stats(self):
+        y = 10
+        for line in self.stat:
+            words = font.render(line, True, white)
+            self.screen.blit(words, (540, y))
+            y += 20
     
     # Converts a single 3D point into a 2D screen point.
     def project_point(self, point):
-        # Split the point into it's respesctive x, y and z.
+        # Split the point into it's respective x, y and z.
         x = point[0]
         y = point[1]
         z = point[2]
@@ -189,7 +226,7 @@ class Renderer:
         # This is done so that the point 0, 0, 0 would project to the middle of the screen.
         # int() converts the values into whole numbers because screen coordinates can't be floats.
         projected_x = int((x / (camera_distance - z)) * fov + (self.screen_width / 2))
-        projected_y = int((y / (camera_distance - z)) * fov + (self.screen_height / 2))
+        projected_y = int(((y * -1) / (camera_distance - z)) * fov + (self.screen_height / 2))
 
         return projected_x, projected_y
     
@@ -201,7 +238,7 @@ class Renderer:
         # An angle of 9 means the face is rotating for 10 frames up til 90 degrees.
         # This is faster than the regular 3 degree turns as it can take time for 10 moves to be animated.
         if not self.animating and self.choices:
-            self.start_animating_face(self.choices[0], 9)
+            self.start_animating_face(self.choices[0][0], 9, self.choices[0][1])
             self.choices.pop(0)
 
         self.screen.fill(bg_colour) # Clear the screen by painting over it with grey.
@@ -215,7 +252,6 @@ class Renderer:
             # self.rotation was meant to be used against a point that would be in the form of a column (3x1).
             # cubie.vertices stores all 8 points as rows so they are defined as row vectors.
             # This means when applying the dot product the rotation is reversed because of the mismatch.
-            # Using the transpose we fix this mismatch without changing any values just the fact that it is now in row vector form.
             rotated = np.dot(cubie.vertices, self.rotation.T)
 
             # Project all 8 rotated vertices into 2D screen coordinates.
@@ -245,7 +281,7 @@ class Renderer:
 
                 # Add all four points from a face and divide by 4 for the average Z value of that face.
                 # This is done only for the Z value because it represents how close the face is to the camera.
-                # This average is  how far the face as a whole is from the camera.
+                # This average is how far the face as a whole is from the camera.
                 # We have to use the 3D Z values because the projected point doesn't have a Z value.
                 z_total = 0
                 for point in points:
@@ -269,6 +305,8 @@ class Renderer:
         # Draw each square onto the pygame window using it's respective colour and points.
         for colour, vertices, z_average in visible_faces:
             pygame.draw.polygon(self.screen, colour, vertices)
+        self.controls()
+        self.stats()
         pygame.display.update()
 
     # Returns 9 cubies that belong to the given face.
@@ -298,7 +336,7 @@ class Renderer:
         return face_cubies
 
     # Used to start an animation by setting up all the information animate_face() needs to perform a face turn.
-    def start_animating_face(self, face, angle):
+    def start_animating_face(self, face, angle, direction):
         # animate_face() needs to know what face to animate, what cubies are in that face and the speed of the animation which is given in degrees.
         # Passing in 3 degrees are for manual face turns and finish in 90 degrees / 3 degrees = 30 frames.
         # Passing in 9 degrees are for scramble face turns and finish in 90 degrees / 9 degrees = 10 frames.
@@ -306,8 +344,13 @@ class Renderer:
         self.face = face
         self.face_cubies = self.get_cubies_face(self.face)
         self.current_angle = 0
-        self.increment_angle = angle
-
+        if direction == "clockwise":
+            self.direction = -1
+        else:
+            self.direction = 1
+        self.increment_angle = angle * self.direction
+        self.ending_angle = 90 * self.direction
+            
     # Used at the start of every draw_cube() call to animate any face turns if needed.
     def animate_face(self):
         # If no face turns needs to be animated then return immediately. 
@@ -315,16 +358,16 @@ class Renderer:
             return
         
         # Once the face has finished a complete 90 degree turn stop animating in the future.
-        if self.current_angle == 90:
+        if self.current_angle == self.ending_angle:
             self.animating = False
             
             # Make a 90 degree rotation matrix for this face.
             # This is applied once so that the cubie's grid position is updated to it's new location
-            # Since pi is a transcendental number, the numbers past the decimal point go on forever.
+            # Since sin and cos are approximations at these angles, the math library eventually cuts the end of it off.
             # This means when using the rotation matrices the values are only an estimate and are eventually rounded.
             # This causes an issue called floating point error and is not really noticed when using the rotation matrix once.
             # But if we were to do 30 3 degree turns the ever so slight floating point error would accumulate and break the cube.
-            angle = math.radians(90)
+            angle = math.radians(self.ending_angle)
             for cubie in self.face_cubies:
                 if self.face == "right":
                     rotation = rotate_x(angle)
@@ -347,6 +390,8 @@ class Renderer:
                 cubie.x = int(round(new_position[0]))
                 cubie.y = int(round(new_position[1]))
                 cubie.z = int(round(new_position[2]))
+
+            self.facelets.apply_move(self.face, self.direction * -1)
 
             return
         
@@ -381,6 +426,8 @@ class Renderer:
         # draw_cube() will remove a face, one move at a time so that the 10 chosen moves will be animated in sequence.
         # The reason why it is 10 moves as any longer will make the algorithm take too long to solve.
         faces = ["right", "left", "up", "down", "front", "back"]
+        directions = ["clockwise", "anticlockwise"]
         for i in range(10):
-            choice = random.choice(faces)
-            self.choices.append(choice)
+            face_choice = random.choice(faces)
+            direction_choice = random.choice(directions)
+            self.choices.append((face_choice, direction_choice))

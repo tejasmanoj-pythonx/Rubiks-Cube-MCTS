@@ -1,6 +1,8 @@
 import pygame      # Used for creating the window and event handling.
 import render      # Used for importing the Renderer class and rotation matrix functions.
+import algorithm
 import numpy as np # Used for combining matrices with matrix dot product.
+import time
 
 # Main class handles the pygame window, the game loop, and all the event handling. 
 class Main:
@@ -35,19 +37,100 @@ class Main:
                     # This is why scramble() method uses an angle of 9 instead of 3 so that the 10 consecutive moves finish faster.
                     if self.renderer.animating == False: 
                         if event.key == pygame.K_r or event.key == pygame.K_1:
-                            self.renderer.start_animating_face("right", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("right", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("right", 3, "clockwise")
                         elif event.key == pygame.K_l or event.key == pygame.K_2:
-                            self.renderer.start_animating_face("left", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("left", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("left", 3, "clockwise")
                         elif event.key == pygame.K_u or event.key == pygame.K_3:
-                            self.renderer.start_animating_face("up", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("up", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("up", 3, "clockwise")
                         elif event.key == pygame.K_d or event.key == pygame.K_4:
-                            self.renderer.start_animating_face("down", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("down", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("down", 3, "clockwise")
                         elif event.key == pygame.K_f or event.key == pygame.K_5:
-                            self.renderer.start_animating_face("front", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("front", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("front", 3, "clockwise")
                         elif event.key == pygame.K_b or event.key == pygame.K_6:
-                            self.renderer.start_animating_face("back", 3)
+                            if event.mod & pygame.KMOD_SHIFT:
+                                self.renderer.start_animating_face("back", 3, "anticlockwise")
+                            else:
+                                self.renderer.start_animating_face("back", 3, "clockwise")
+
+                        # Clears out the statistics on the screen and scrambles the cube
                         elif event.key == pygame.K_s:
                             self.renderer.scramble()
+                            self.renderer.stat = []
+
+                        # Pressing space is used to solve the cube
+                        elif event.key == pygame.K_SPACE:
+                            if not self.renderer.choices:
+                                # First clear out the statistics, indicate that the cube is solcing and record the time
+                                self.renderer.stat = []
+                                self.renderer.stat.append("Solving...")
+                                self.renderer.draw_cube()
+                                start_time = time.perf_counter()
+
+                                # Makes an instance of MCTS passing in the current state of the cube
+                                # An iteration budget and move_amount are set here to cap each phase
+                                # There are different values for each of these depending if they are more difficult or not to reach
+                                # Statistics about the amount of moves and time taken to solve for that phase are also shown onto the screen.
+                                mcts = algorithm.MCTS(self.renderer.facelets)
+                                cross_moves = mcts.main(algorithm.white_cross, 8, 3000, 20)
+                                white_cross_time = time.perf_counter()
+                                time_taken = white_cross_time - start_time
+                                self.renderer.stat.append("White Cross took " + str(round(time_taken, 3)) + "s and " + str(len(cross_moves)) + " moves")
+                                self.renderer.draw_cube()
+
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                corner_moves  = mcts.main(algorithm.white_corners, 20, 4000, 40)
+                                white_corner_time = time.perf_counter()
+                                time_taken = white_corner_time - white_cross_time
+                                self.renderer.stat.append("White Corner took " + str(round(time_taken, 3)) + "s and " + str(len(corner_moves)) + " moves")
+                                self.renderer.draw_cube()
+
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                second_layer_moves  = mcts.main(algorithm.second_layer, 28, 4000, 60)
+                                second_layer_time = time.perf_counter()
+                                time_taken = second_layer_time - white_corner_time
+                                self.renderer.stat.append("Second Layer took " + str(round(time_taken, 3)) + "s and " + str(len(second_layer_moves)) + " moves")
+                                self.renderer.draw_cube()
+
+                                mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                yellow_cross_moves  = mcts.main(algorithm.yellow_cross, 32, 4000, 60)
+                                yellow_cross_time = time.perf_counter()
+                                time_taken = yellow_cross_time - second_layer_time
+                                self.renderer.stat.append("Yellow Cross took " + str(round(time_taken, 3)) + "s and " + str(len(yellow_cross_moves)) + " moves")
+                                self.renderer.draw_cube()
+
+                                # These phases currently don't work currently
+                                # This is because the specific sequence of moves needed like the Sune algorithm are way too long
+                                # Meaning that the chance MCTS finds this sequences is incredibily low
+                                # mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                # yellow_face_moves  = mcts.main(algorithm.yellow_face, 36, 4000, 60)
+                                # mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                # yellow_edges_moves  = mcts.main(algorithm.yellow_edges, 40, 4000, 60)
+                                # mcts = algorithm.MCTS(mcts.starting_node.facelets)
+                                # yellow_corners_moves  = mcts.main(algorithm.yellow_corners, 48, 4000, 60)
+
+                                moves = cross_moves + corner_moves + second_layer_moves + yellow_cross_moves #+ yellow_face_moves + yellow_edges_moves + yellow_corners_moves
+                                self.renderer.stat.append("Total moves: " + str(len(moves)))
+                                for move in moves:
+                                    if move[1] == 1:
+                                        self.renderer.choices.append((move[0], "clockwise"))
+                                    else:
+                                        self.renderer.choices.append((move[0], "anticlockwise"))
+                                
 
                 # Handles the cube rotation using mouse drag.
                 elif event.type == pygame.MOUSEBUTTONDOWN: 
@@ -70,9 +153,8 @@ class Main:
                         # Find the difference between the current x and y from the starting x and y.
                         # x_difference is the horizontal distance so a positive x moves rightwards and vice versa.
                         # y_difference is the vertical distance but due to pygame's positive y value moving downwards, the vertical movement is inverted.
-                        # To counteract this we multiply the y value by -1 to flip the axis so that positive y moves up and vice versa.
                         x_difference = x_current - self.mouse_position[0]
-                        y_difference = (y_current - self.mouse_position[1])*-1
+                        y_difference = y_current - self.mouse_position[1]
 
                         # Convert the differences in x and y into rotation angles.
                         # 0.005 is the sensitivity that scales everything down to smaller angle.
